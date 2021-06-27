@@ -39,6 +39,9 @@ const materials = [
 const cube = new THREE.Mesh(new THREE.BoxBufferGeometry(0.2, 0.2, 0.2), materials);
 cube.position.set(1, 1, 1);
 scene.add(cube);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+directionalLight.position.set(10, 15, 10);
+scene.add(directionalLight); 
 
 // Set up the WebGLRenderer, which handles rendering to the session's base layer.
 const renderer = new THREE.WebGLRenderer({
