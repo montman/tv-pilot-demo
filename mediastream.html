@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>Hello WebXR!</title>
+</head>
+
+<body>
+
+  <button id="view" onclick="viewCamera()" disabled>View Camera</button>
+  <video id="localVideo" autoplay playsinline controls="false">
+  <script>
+      let cameras = [];
+      let currentCamera = 1;
+      const videoElement = document.querySelector('video#localVideo');
+    
+    async function initDevices(type) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter(device => device.kind === type)
+        document.getElementById('view').disabled = false;
+    }
+    async function openCamera(cameraId) {
+        const constraints = {
+            'audio': false,
+            'video': {
+                'deviceId': cameraId
+            }
+        }
+        return await navigator.mediaDevices.getUserMedia(constraints);
+    }
+    async function viewCamera() {
+        const stream = await openCamera(cameras[currentCamera].deviceId);
+        videoElement.srcObject = stream;
+        document.getElementById('view').disabled = true;
+    }
+    initDevices('videoinput');
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://kit.fontawesome.com/e4950fb6ab.js" crossorigin="anonymous"></script>
+<!--Init Script-->
+    <script>
+        const configuration = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+        const socket = io();
+        let peerConnection = new RTCPeerConnection(configuration);
+        peerConnection.ontrack = function(event) {
+                console.log(event)
+            }
+            peerConnection.onicecandidate = function(event) {
+                console.log('icecandidate')
+                if (event.candidate) {
+                    socket.emit('new-ice-candidate',event.candidate)
+                }
+            };
+        let cameras = [];
+        let currentCamera = 1;
+        async function initDevices(type) {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            cameras = devices.filter(device => device.kind === type)
+        }
+        
+        
+        
+        
+    </script>
+<!--After Connection Script-->
+    <script>   
+        async function openCamera(cameraId) {
+            const constraints = {
+                'audio': false,
+                'video': {
+                    'deviceId': cameraId
+                }
+            }
+            return await navigator.mediaDevices.getUserMedia(constraints);
+        }
+        async function getCurrentStream() {
+            return await openCamera(cameras[currentCamera].deviceId);
+        }
+        async function sendRemoteVideo() {
+            let localStream = await getCurrentStream();
+            console.log('trasmissione')
+            peerConnection.addTrack(localStream.getTracks()[0]);
+        }
+        function receiveStream() {
+            console.log('ricezione')
+            const remoteVideo = document.querySelector('#remoteVideo');
+
+           
+        }
+    </script>
+<!--Connection Script-->
+    <script>
+        
+        async function offer() {
+            await sendRemoteVideo(); //osservatore
+            peerConnection.createOffer(function(session) {
+                peerConnection.setLocalDescription(session)
+                socket.emit('offer',session)
+            },function(error) {
+                console.log(error)
+            })
+        }
+        async function answer(data) {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit('answer',answer);
+        }
+        async function peer(data) {
+            const remoteDesc = new RTCSessionDescription(data);
+            peerConnection.setRemoteDescription(remoteDesc);
+        }
+        $(function(){
+            initDevices('videoinput');
+            socket.on('users',data=>{
+                $('.joinBtn').hide();
+                if (!data.operatorId) $('#joinOperatorBtn').show()
+                else if (!data.observerId) $('#joinObserverBtn').show();
+            })
+            socket.on('offerReady',data=>{
+                answer(data);
+            })
+            socket.on('answerReady',data=>{
+                peer(data);
+            })
+            socket.on('observerJoined',data=>{
+                $('.panel').hide().removeClass('d-flex');
+                $('#observerPanel').show().addClass('d-flex');
+                offer();
+            })
+            socket.on('operatorJoined',data=>{
+                $('.panel').hide().removeClass('d-flex');
+                $('#operatorPanel').show().addClass('d-flex');
+                
+            })
+            socket.on('iceCandidate',data=>{
+                try {
+                    peerConnection.addIceCandidate(data);
+                } catch (e) {
+                    console.error('Error adding received ice candidate', e);
+                }
+            })
+            $('#joinOperatorBtn').click(function(){
+                socket.emit('joinOperator',{});
+            })
+            $('#joinObserverBtn').click(function(){
+                socket.emit('joinObserver',{});
+            })
+        })
+    </script>
+    <title>Pilot Eleven</title>
+  </head>
+  <body class="min-vh-100 d-flex flex-column">
+      <div class="flex-fill d-flex flex-column p-4 panel" id="startPanel">
+          <button class="btn btn-success flex-fill joinBtn" id="joinObserverBtn" style="display: none"><span class="fas fa-eye"></span> Osserva</button>
+          <button class="btn btn-primary flex-fill joinBtn" id="joinOperatorBtn" style="display: none;"><span class="fas fa-play"></span> Avvia Streaming</button>
+      </div>
+      <div class="flex-fill flex-column p-4 panel" id="operatorPanel" style="display: none;">
+        Operatore
+    </div>
+    <div class="flex-fill flex-column p-4 panel" id="observerPanel" style="display: none;">
+        <video id="remoteVideo" autoplay playsinline controls="false">
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+  </body>
+</html>

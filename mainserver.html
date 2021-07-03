@@ -1,0 +1,53 @@
+
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io()
+        const configuration = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+        let peerConnection = new RTCPeerConnection(configuration);
+        function offer() {
+            peerConnection.createOffer(function(session) {
+                console.log(session)
+                peerConnection.setLocalDescription(session)
+                socket.emit('offer',JSON.stringify(session))
+            },function(error) {
+                console.log(error)
+            })
+        }
+        function acceptClient() {
+            
+            /*signalingChannel.addEventListener('message', async message => {
+                if (message.offer) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    signalingChannel.send({ 'answer': answer });
+                }
+            });*/
+        }
+        $(function () {
+            offer()
+            socket.on('answer',data=>{
+                $('#content').append($('<p>Answer arrived</p>'));
+                const remoteDesc = new RTCSessionDescription(data);
+                console.log(peerConnection)
+                peerConnection.setRemoteDescription(remoteDesc);
+                console.log(peerConnection)
+            })
+        })
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <title>Client Pilot</title>
+  </head>
+  <body>
+    <div id="content">
+    </div>
+  </body>
+</html>
